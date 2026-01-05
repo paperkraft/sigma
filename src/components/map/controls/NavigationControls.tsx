@@ -1,30 +1,29 @@
 "use client";
 
 import {
-  Globe,
-  Home,
-  Layers,
-  Map as MapIcon,
-  MapPin,
-  MapPinnedIcon,
-  Mountain,
+  Bookmark,
+  ExpandIcon,
+  Focus,
+  MapIcon,
+  Maximize,
   Search,
+  ShrinkIcon,
   SquareMousePointer,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
 
-import { layerType } from "@/constants/map";
 import {
   handleZoomIn,
   handleZoomOut,
   handleZoomToExtent,
 } from "@/lib/interactions/map-controls";
-import { switchBaseLayer } from "../../../lib/map/baseLayers";
+import { useBookmarkStore } from "@/store/bookmarkStore";
 import { useMapStore } from "@/store/mapStore";
 import { useUIStore } from "@/store/uiStore";
 
 import { ControlGroup, Divider, ToolBtn } from "./Shared";
+import { useEffect, useState } from "react";
 
 interface NavigationControlsProps {
   activeGroup: string | null;
@@ -38,17 +37,32 @@ export function NavigationControls({
   const map = useMapStore((state) => state.map);
   const {
     activeTool,
-    baseLayer,
     showLocationSearch,
     setActiveTool,
-    setBaseLayer,
     setShowLocationSearch,
   } = useUIStore();
 
-  const handleBaseLayerChange = (layerType: layerType) => {
-    if (!map) return;
-    switchBaseLayer(map, layerType);
-    setBaseLayer(layerType);
+  const { isPanelOpen, togglePanel } = useBookmarkStore();
+  const [isFullscreen, setIsFullscreen] = useState(false);
+
+  useEffect(() => {
+    const handleFsChange = () => setIsFullscreen(!!document.fullscreenElement);
+    document.addEventListener("fullscreenchange", handleFsChange);
+    return () =>
+      document.removeEventListener("fullscreenchange", handleFsChange);
+  }, []);
+
+  const isActiveGroup =
+    isPanelOpen || activeTool === "zoom-box" || isFullscreen;
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen().catch((err) => {
+        console.error(`Error attempting to enable fullscreen: ${err.message}`);
+      });
+    } else {
+      document.exitFullscreen();
+    }
   };
 
   return (
@@ -60,6 +74,7 @@ export function NavigationControls({
         label="Navigation"
         activeGroup={activeGroup}
         onToggle={onToggle}
+        isActiveGroup={isActiveGroup}
       >
         <ToolBtn
           onClick={() => setShowLocationSearch(!showLocationSearch)}
@@ -67,70 +82,48 @@ export function NavigationControls({
           icon={Search}
           title="Search"
         />
+
         <Divider />
 
-        {/* NEW: Zoom Box Tool */}
+        <ToolBtn
+          onClick={() => handleZoomIn(map)}
+          icon={ZoomIn}
+          title="Zoom In +"
+        />
+
+        <ToolBtn
+          onClick={() => handleZoomOut(map)}
+          icon={ZoomOut}
+          title="Zoom Out -"
+        />
+
+        <ToolBtn
+          onClick={() => handleZoomToExtent(map)}
+          icon={Maximize}
+          title="Zoom Extent F"
+        />
+
         <ToolBtn
           onClick={() => setActiveTool("zoom-box")}
           isActive={activeTool === "zoom-box"}
           icon={SquareMousePointer}
-          title="Zoom to Box"
+          title="Zoom to Box Z"
+        />
+
+        <ToolBtn
+          onClick={toggleFullscreen}
+          isActive={isFullscreen}
+          icon={isFullscreen ? ShrinkIcon : ExpandIcon}
+          title={isFullscreen ? "Exit Fullscreen" : "Enter Fullscreen"}
         />
 
         <Divider />
-        <ToolBtn
-          onClick={() => handleZoomIn(map)}
-          icon={ZoomIn}
-          title="Zoom In"
-        />
-        <ToolBtn
-          onClick={() => handleZoomOut(map)}
-          icon={ZoomOut}
-          title="Zoom Out"
-        />
-        <ToolBtn
-          onClick={() => handleZoomToExtent(map)}
-          icon={Home}
-          title="Zoom Extent"
-        />
-      </ControlGroup>
-
-      {/* Base Layer Sub-Group */}
-      <ControlGroup
-        id="layers"
-        icon={Layers}
-        label="Base Layers"
-        activeGroup={activeGroup}
-        onToggle={onToggle}
-      >
-        <ToolBtn
-          onClick={() => handleBaseLayerChange("osm")}
-          isActive={baseLayer === "osm"}
-          icon={MapPin}
-          title="OpenStreetMap"
-          label="OSM"
-        />
 
         <ToolBtn
-          onClick={() => handleBaseLayerChange("mapbox")}
-          isActive={baseLayer === "mapbox"}
-          icon={MapPinnedIcon}
-          title="Mapbox"
-          label="Box"
-        />
-        <ToolBtn
-          onClick={() => handleBaseLayerChange("satellite")}
-          isActive={baseLayer === "satellite"}
-          icon={Globe}
-          title="Satellite"
-          label="Sat"
-        />
-        <ToolBtn
-          onClick={() => handleBaseLayerChange("terrain")}
-          isActive={baseLayer === "terrain"}
-          icon={Mountain}
-          title="Terrain"
-          label="Topo"
+          onClick={togglePanel}
+          isActive={showLocationSearch}
+          icon={Bookmark}
+          title="Bookmarks"
         />
       </ControlGroup>
     </>

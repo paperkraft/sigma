@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 
 import { layerType } from '@/constants/map';
+import { WorkbenchModalType } from '@/components/workbench/modal_registry';
 export type FlowAnimationStyle = 'dashes' | 'particles' | 'glow' | 'combined';
 
 export type ToolType =
@@ -10,27 +11,18 @@ export type ToolType =
     | 'modify'
     | 'pan'
     | 'zoom-box'
-    // Add specific drawing tools
-    | 'draw'
+    // Drawing tools
     | 'draw-pipe'
-    | 'add-junction'
-    | 'add-reservoir'
-    | 'add-tank'
-    | 'add-pump'
-    | 'add-valve';
+    | 'draw-junction'
+    | 'draw-reservoir'
+    | 'draw-tank'
+    | 'draw-pump'
+    | 'draw-valve';
 
-export type WorkbenchModalType =
-    | "NONE"
-    | "GEOMETRY_IMPORT"
-    | "SIMULATION_GRAPHS"
-    | "SIMULATION_CONFIG"
-    | "STYLE_SETTINGS"
-    | "JUNCTION_PROP"
-    | "RESERVOIR_PROP"
-    | "TANK_PROP"
-    | "PIPE_PROP"
-    | "PUMP_PROP"
-    | "VALVE_PROP";
+export type WorkbenchPanelType =
+    | 'NONE'
+    | 'PROJECT_DETAILS'
+    | 'SIMULATION_SETUP'
 
 export interface ContextMenuState {
     x: number;
@@ -69,7 +61,7 @@ interface UIState {
 
     // Panel and Modal
     activeModal: WorkbenchModalType;
-    activePanel: string;
+    activePanel: WorkbenchPanelType;
 
 
     // Map control states
@@ -118,7 +110,7 @@ interface UIState {
     setQueryBuilderModalOpen: (open: boolean) => void;
 
     setActiveModal: (modal: WorkbenchModalType) => void;
-    setActivePanel: (panel: string) => void;
+    setActivePanel: (panel: WorkbenchPanelType) => void;
 
     // Actions - Map Controls
     setActiveTool: (tool: ToolType | null) => void;
@@ -169,7 +161,7 @@ const DEFAULT_STATE = {
     deleteModalOpen: false,
     queryBuilderModalOpen: false,
 
-    activePanel: 'NONE',
+    activePanel: 'NONE' as WorkbenchPanelType,
     activeModal: "NONE" as WorkbenchModalType,
 
     importModalOpen: false,

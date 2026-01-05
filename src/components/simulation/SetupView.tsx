@@ -3,50 +3,64 @@
 import {
     Activity, AlertCircle, ArrowLeft, CheckCircle2, Clock, Play, Settings
 } from 'lucide-react';
-import { useParams } from 'next/navigation';
 import React, { useState } from 'react';
 
 import { FormGroup } from '@/components/form-controls/FormGroup';
 import { FormInput } from '@/components/form-controls/FormInput';
 import { flowUnitOptions, headLossUnitOptions } from '@/constants/project';
-import { useNetworkExport } from '@/hooks/useNetworkExport';
 import { useSimulationStore } from '@/store/simulationStore';
 import { useStyleStore } from '@/store/styleStore';
 import { useUIStore } from '@/store/uiStore';
 
 import { FormSelect } from '../form-controls/FormSelect';
+import { useNetworkStore } from '@/store/networkStore';
+import { HeadlossFormula } from '@/types/network';
 
 export function SetupView() {
-    const params = useParams();
     const { setActiveModal, setActivePanel } = useUIStore();
     const { runSimulation, isSimulating } = useSimulationStore();
-    const { exportNetwork } = useNetworkExport();
     const { setColorMode } = useStyleStore();
+
+    const { updateSettings, features, settings } = useNetworkStore();
 
     const [activeSection, setActiveSection] = useState("control");
     const [statusMsg, setStatusMsg] = useState("Ready to solve.");
     const [statusColor, setStatusColor] = useState<"blue"|"green"|"red">("blue");
 
     const [config, setConfig] = useState({
-        duration: 24, timeStep: "1:00", startClock: "12:00 AM",
-        flowUnits: "LPS", headLoss: "H-W", accuracy: 0.001, trials: 40
+        duration: 24, 
+        timeStep: "1:00",
+        startClock: "12:00 AM",
+        flowUnits: settings.units, 
+        headloss: settings.headloss as HeadlossFormula , 
+        accuracy: settings.accuracy, 
+        trials: settings.trials
     });
 
     const handleRun = async () => {
         setStatusMsg("Building model...");
         setStatusColor("blue");
-        setTimeout(async () => {
-            const networkData = exportNetwork(); 
-            if (!networkData || Object.keys(networkData.nodes).length === 0) {
-                setStatusMsg("Error: Network empty."); setStatusColor("red"); return;
-            }
 
+        updateSettings(config);
+
+        setTimeout(async () => {
+            if (features.size === 0) {
+                setStatusMsg("Error: Network empty."); 
+                setStatusColor("red"); 
+                return;
+            }
+            
             setStatusMsg("Running Solver...");
-            const success = await runSimulation({ ...networkData, projectId:params.id, options: config });
+            
+            const success = await runSimulation();
+
             if (success) {
-                setStatusMsg("Converged."); setStatusColor("green"); setColorMode('pressure');
+                setStatusMsg("Converged."); 
+                setStatusColor("green"); 
+                setColorMode('pressure');
             } else {
-                setStatusMsg("Solver Failed."); setStatusColor("red");
+                setStatusMsg("Solver Failed."); 
+                setStatusColor("red");
             }
         }, 50);
     };
@@ -81,7 +95,7 @@ export function SetupView() {
                     <div className="space-y-3 px-1">
                         <FormGroup label="System Properties">
                         <FormSelect label="Flow Units" value={config.flowUnits} onChange={(v:any) => setConfig({...config, flowUnits: v})} options={flowUnitOptions}/>
-                        <FormSelect label="Head Loss Model" value={config.headLoss} onChange={(v:any) => setConfig({...config, headLoss: v})} options={headLossUnitOptions}/>
+                        <FormSelect label="Head Loss Model" value={config.headloss} onChange={(v:any) => setConfig({...config, headloss: v})} options={headLossUnitOptions}/>
                         </FormGroup>
                     </div>
                 </SimSection>

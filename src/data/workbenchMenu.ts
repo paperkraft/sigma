@@ -1,4 +1,5 @@
-import { WorkbenchModalType } from "@/store/uiStore";
+import { WorkbenchModalType } from "@/components/workbench/modal_registry";
+import { WorkbenchPanelType } from "@/store/uiStore";
 import {
     Layers, Box, Circle,
     Settings, FileText, PenTool, Edit3, Calculator,
@@ -8,7 +9,10 @@ import {
     Pentagon,
     Hexagon,
     Square,
-    Triangle
+    Triangle,
+    Play,
+    Mountain,
+    ActivityIcon
 } from "lucide-react";
 
 // 1. Schema Definition
@@ -25,7 +29,7 @@ export type MenuItem = {
     defaultOpen?: boolean;
     children?: MenuItem[];
     modalType?: WorkbenchModalType;
-    modalPanel?: WorkbenchModalType | string;
+    panelType?: WorkbenchPanelType;
 };
 
 // 2. The Real Data
@@ -58,16 +62,27 @@ export const WORKBENCH_MENU: MenuItem[] = [
                 label: "Settings",
                 icon: Settings,
                 children: [
-                    { id: "set_proj", type: "ITEM", label: "Project Settings" },
+                    { id: "set_proj", type: "ITEM", label: "Project Settings", modalType: "PROJECT_SETTINGS" },
                     { id: "set_attr", type: "ITEM", label: "Default Attribute" },
                     { id: "set_time", type: "ITEM", label: "Time Pattern" },
                     { id: "set_demand", type: "ITEM", label: "Demand Pattern" },
                     { id: "set_data", type: "ITEM", label: "Data Tables (Pipe / Valve)" },
+
                 ]
             },
+            {
+                id: "grp_terrain",
+                type: "GROUP",
+                label: "Terrain",
+                icon: Map,
+                children: [
+                    { id: "terr_layer", type: "ITEM", label: "Layers", icon: Map },
+                    { id: "terr_elvn", type: "ITEM", label: "Elevation", icon: Mountain, modalType: "AUTO_ELEVATION" },
+                ]
+            },
+            { id: "itm_valid", type: "ITEM", label: "Validate", icon: ActivityIcon, modalType: "VALIDATION" },
             { id: "itm_headworks", type: "ITEM", label: "Headworks", icon: Box },
             { id: "itm_wtp", type: "ITEM", label: "WTP", icon: Droplets },
-            { id: "itm_terrain", type: "ITEM", label: "Terrain (Layer)", icon: Map },
             { id: "itm_zone", type: "ITEM", label: "Zone", icon: MousePointer2 },
             { id: "itm_support", type: "ITEM", label: "Supporting Layers", icon: Layers },
             { id: "itm_select_sets", type: "ITEM", label: "Selection sets", icon: MousePointer2 },
@@ -83,6 +98,7 @@ export const WORKBENCH_MENU: MenuItem[] = [
         status: "warning",
         defaultOpen: false,
         children: [
+
             {
                 id: "grp_net_edit",
                 type: "GROUP",
@@ -173,9 +189,9 @@ export const WORKBENCH_MENU: MenuItem[] = [
             {
                 id: "sim_config",
                 type: "ITEM",
-                label: "Configuration",
-                icon: Settings,
-                modalPanel: "SIMULATION_CONFIG"
+                label: "Simulate",
+                icon: Play,
+                panelType: "SIMULATION_SETUP",
             },
             {
                 id: "grp_sim_sets",
@@ -186,8 +202,8 @@ export const WORKBENCH_MENU: MenuItem[] = [
                     { id: "sim_opt", type: "ITEM", label: "Network Options" },
                     { id: "sim_meth", type: "ITEM", label: "Analysis Method" },
                     { id: "sim_dem_opt", type: "ITEM", label: "Demand Options" },
-                    { id: "sim_curve", type: "ITEM", label: "Curves" },
-                    { id: "sim_ctrl", type: "ITEM", label: "Controls" },
+                    { id: "sim_curve", type: "ITEM", label: "Curves", modalType: "CURVES_PATTERNS" },
+                    { id: "sim_ctrl", type: "ITEM", label: "Controls", modalType: "CONTROLS" },
                 ]
             },
             {
