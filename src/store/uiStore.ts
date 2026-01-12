@@ -33,14 +33,16 @@ export interface ContextMenuState {
 
 interface UIState {
 
-    // Sidebar
-    showLabels: boolean;
-    sidebarOpen: boolean;
-    showPipeArrows: boolean;
-    sidebarCollapsed: boolean;
+    // project refresh key
+    projectRefreshKey: number;
 
-    // Tab navigation
-    activeTab: string;
+    // Sidebar
+    isCollapsed: boolean;
+    sidebarWidth: number;
+
+    // Symbology
+    showLabels: boolean;
+    showPipeArrows: boolean;
 
     // Snapping
     isSnappingEnabled: boolean;
@@ -49,20 +51,15 @@ interface UIState {
     deleteModalOpen: boolean;
     importModalOpen: boolean;
     exportModalOpen: boolean;
+
     showAutoElevation: boolean;
-    validationModalOpen: boolean;
-    dataManagerModalOpen: boolean;
-    controlManagerModalOpen: boolean;
-    projectSettingsModalOpen: boolean;
     simulationReportModalOpen: boolean;
     keyboardShortcutsModalOpen: boolean;
-    componentSelectionModalOpen: boolean;
     queryBuilderModalOpen: boolean;
 
     // Panel and Modal
     activeModal: WorkbenchModalType;
     activePanel: WorkbenchPanelType;
-
 
     // Map control states
     activeTool: ToolType | null;
@@ -88,25 +85,24 @@ interface UIState {
     contextMenu: ContextMenuState | null;
     activeStyleLayer: string | null;
 
+    // project refresh utility
+    refreshProjects: () => void;
 
     // Actions - Sidebar
     toggleSidebar: () => void;
-    setSidebarCollapsed: (collapsed: boolean) => void;
+    setIsCollapsed: (collapse: boolean) => void;
+    setSidebarWidth: (width: number) => void;
+
     setShowLabels: (show: boolean) => void;
     setShowPipeArrows: (show: boolean) => void;
 
     // Actions - Modals
-    setComponentSelectionModalOpen: (open: boolean) => void;
     setKeyboardShortcutsModalOpen: (open: boolean) => void;
     setSimulationReportModalOpen: (open: boolean) => void;
     setShowAutoElevation: (open: boolean) => void;
     setDeleteModalOpen: (open: boolean) => void;
     setImportModalOpen: (open: boolean) => void;
     setExportModalOpen: (open: boolean) => void;
-    setValidationModalOpen: (open: boolean) => void;
-    setProjectSettingsModalOpen: (open: boolean) => void;
-    setDataManagerModalOpen: (open: boolean) => void;
-    setControlManagerModalOpen: (open: boolean) => void;
     setQueryBuilderModalOpen: (open: boolean) => void;
 
     setActiveModal: (modal: WorkbenchModalType) => void;
@@ -139,7 +135,6 @@ interface UIState {
     setStyleSettingsModalOpen: (open: boolean) => void;
 
     // Actions - Tab navigation
-    setActiveTab: (tab: string) => void;
     setContextMenu: (menu: ContextMenuState | null) => void;
     setActiveStyleLayer: (layer: string | null) => void;
 
@@ -149,6 +144,11 @@ interface UIState {
 }
 
 const DEFAULT_STATE = {
+
+    projectRefreshKey: 0,
+
+    sidebarWidth: 260,
+    isCollapsed: false,
 
     // Modal
     componentSelectionModalOpen: false,
@@ -180,11 +180,8 @@ const DEFAULT_STATE = {
     flowAnimationSpeed: 1.0,
     flowAnimationStyle: 'dashes' as FlowAnimationStyle,
 
-    activeTab: 'network-editor',
     activeTool: 'pan' as const,
     baseLayer: 'osm' as const,
-    sidebarOpen: true,
-    sidebarCollapsed: false,
 
     layerVisibility: {
         reservoir: true,
@@ -195,7 +192,7 @@ const DEFAULT_STATE = {
         pump: true,
     },
 
-    showLabels: false,
+    showLabels: true,
     showPipeArrows: true,
 
     isSnappingEnabled: true,
@@ -211,16 +208,16 @@ export const useUIStore = create<UIState>((set, get) => ({
     // default state
     ...DEFAULT_STATE,
 
+    refreshProjects: () => set((state) => ({ projectRefreshKey: state.projectRefreshKey + 1 })),
+
+    setSidebarWidth: (width) => set({ sidebarWidth: width }),
+
     setContextMenu: (menu) => set({ contextMenu: menu }),
     setActiveStyleLayer: (layer) => set({ activeStyleLayer: layer }),
 
     // Modal actions
-    setComponentSelectionModalOpen: (open) => set({ componentSelectionModalOpen: open }),
     setKeyboardShortcutsModalOpen: (open) => set({ keyboardShortcutsModalOpen: open }),
     setSimulationReportModalOpen: (open) => set({ simulationReportModalOpen: open }),
-    setProjectSettingsModalOpen: (open) => set({ projectSettingsModalOpen: open }),
-    setControlManagerModalOpen: (open) => set({ controlManagerModalOpen: open }),
-    setDataManagerModalOpen: (open) => set({ dataManagerModalOpen: open }),
     setQueryBuilderModalOpen: (open) => set({ queryBuilderModalOpen: open }),
 
     // Modal and Panel
@@ -232,13 +229,13 @@ export const useUIStore = create<UIState>((set, get) => ({
     setShowAssetSearch: (show) => set({ showAssetSearch: show }),
     setShowAutoElevation: (open) => set({ showAutoElevation: open }),
 
-    setValidationModalOpen: (open) => set({ validationModalOpen: open }),
     setFlowAnimationSpeed: (speed) => set({ flowAnimationSpeed: speed }),
     setFlowAnimationStyle: (style) => set({ flowAnimationStyle: style }),
 
     setDeleteModalOpen: (open) => set({ deleteModalOpen: open }),
     setImportModalOpen: (open) => set({ importModalOpen: open }),
     setExportModalOpen: (open) => set({ exportModalOpen: open }),
+
     setMeasurementType: (type) => set({ measurementType: type }),
     setShowPipeArrows: (show) => set({ showPipeArrows: show }),
     setShowLabels: (show) => set({ showLabels: show }),
@@ -259,11 +256,6 @@ export const useUIStore = create<UIState>((set, get) => ({
             activeTool: tool,
         };
 
-        // If switching away from pipe, close component selection
-        if (currentTool === 'draw-pipe' && tool !== 'draw-pipe') {
-            updates.componentSelectionModalOpen = false;
-        }
-
         // ALWAYS disable measurement if explicitly switching tools
         if (isMeasuring) {
             updates.measurementActive = false;
@@ -283,8 +275,8 @@ export const useUIStore = create<UIState>((set, get) => ({
         set((state) => ({ showAttributeTable: !state.showAttributeTable }));
     },
 
-    toggleSidebar: () => set((state) => ({ sidebarOpen: !state.sidebarOpen })),
-    setSidebarCollapsed: (collapsed) => set({ sidebarCollapsed: collapsed }),
+    toggleSidebar: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
+    setIsCollapsed: () => set((state) => ({ isCollapsed: !state.isCollapsed })),
 
     // Layer actions
     toggleLayerVisibility: (layerId) => {
@@ -322,16 +314,12 @@ export const useUIStore = create<UIState>((set, get) => ({
     // Base layer actions
     setBaseLayer: (layer: layerType) => set({ baseLayer: layer }),
 
-    // Tab navigation actions
-    setActiveTab: (tab) => set({ activeTab: tab }),
-
     // Utility actions
     resetAllTools: () => {
         set({
             activeTool: 'pan',
             measurementActive: false,
             showAttributeTable: false,
-            componentSelectionModalOpen: false,
             keyboardShortcutsModalOpen: false,
         });
     },

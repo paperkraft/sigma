@@ -1,33 +1,26 @@
 "use client";
 
 import {
-  AlertTriangle,
-  ArrowLeft,
-  BarChart3,
-  ChevronLeft,
-  ChevronRight,
-  Download,
-  FileText,
-  Layers,
-  Pause,
-  Play,
-  RefreshCcw,
-  Terminal,
-  Timer,
-} from "lucide-react";
-import React, { useEffect, useMemo, useState } from "react";
+    AlertTriangle, ArrowLeft, BarChart3, ChevronLeft, ChevronRight, Download, FileText, Layers,
+    Pause, Play, RefreshCcw, Save, Terminal, Timer
+} from 'lucide-react';
+import { useParams } from 'next/navigation';
+import React, { useEffect, useMemo, useState } from 'react';
 
-import { cn } from "@/lib/utils";
-import { useSimulationStore } from "@/store/simulationStore";
-import { useStyleStore } from "@/store/styleStore";
-import { useUIStore } from "@/store/uiStore";
+import { cn } from '@/lib/utils';
+import { useSimulationStore } from '@/store/simulationStore';
+import { useStyleStore } from '@/store/styleStore';
+import { useUIStore } from '@/store/uiStore';
 
-import { FormGroup } from "../form-controls/FormGroup";
-import { FormSelect } from "../form-controls/FormSelect";
-import { Button } from "../ui/button";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { FormGroup } from '../form-controls/FormGroup';
+import { FormSelect } from '../form-controls/FormSelect';
+import { Button } from '../ui/button';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
 
 export function ResultsView() {
+  const params = useParams();
+  const projectId = params?.id as string;
+
   const {
     isPlaying,
     history,
@@ -39,9 +32,12 @@ export function ResultsView() {
     togglePlayback,
     warnings,
     report,
+    saveResultsToDB,
   } = useSimulationStore();
 
-  const { colorMode, setColorMode } = useStyleStore();
+  const { nodeColorMode, setNodeColorMode, linkColorMode, setLinkColorMode } =
+    useStyleStore();
+
   const { setActiveModal } = useUIStore();
 
   const [showLog, setShowLog] = useState(false);
@@ -152,16 +148,31 @@ export function ResultsView() {
     a.click();
   };
 
+  const handleBack = () => {
+    resetSimulation();
+    setNodeColorMode("none");
+    setLinkColorMode("none");
+  }
+
   if (!stats || !history) return null;
 
   const totalSteps = history.snapshots.length;
   const isEPS = totalSteps > 1;
 
-  const visulationOptions = [
+  const nodeOptions = [
     { label: "Pressure", value: "pressure" },
-    { label: "Velocity", value: "velocity" },
     { label: "Total Head", value: "head" },
+    { label: "Demand", value: "demand" },
+    { label: "Elevation", value: "elevation" },
+    { label: "None", value: "none" },
+  ];
+
+  const linkOptions = [
+    { label: "Velocity", value: "velocity" },
     { label: "Flow Rate", value: "flow" },
+    { label: "Headloss", value: "headloss" },
+    { label: "Diameter", value: "diameter" },
+    { label: "None", value: "none" },
   ];
 
   return (
@@ -176,7 +187,7 @@ export function ResultsView() {
         )}
       >
         <button
-          onClick={resetSimulation}
+          onClick={handleBack}
           className="p-1.5 hover:bg-white/50 rounded text-slate-500 hover:text-slate-800 transition-all"
         >
           <ArrowLeft size={14} />
@@ -319,10 +330,17 @@ export function ResultsView() {
         {/* Map Visualization */}
         <FormGroup label="Visualization">
           <FormSelect
-            label=""
-            value={colorMode || ""}
-            onChange={(v) => setColorMode(v)}
-            options={visulationOptions}
+            label="Nodes"
+            value={nodeColorMode}
+            onChange={(v) => setNodeColorMode(v)}
+            options={nodeOptions}
+          />
+
+          <FormSelect
+            label="Links"
+            value={linkColorMode}
+            onChange={(v) => setLinkColorMode(v)}
+            options={linkOptions}
           />
         </FormGroup>
 
@@ -356,11 +374,23 @@ export function ResultsView() {
             color="green"
             onClick={handleDownloadReport}
           />
+          <ActionButton
+            icon={Save}
+            title="Save Results"
+            desc="Save run to database"
+            color="green"
+            onClick={() => saveResultsToDB(projectId)}
+          />
         </div>
       </div>
 
       <div className="p-2 border-t border-slate-100 bg-slate-50">
-        <Button variant={"ghost"} size={'sm'} className="w-full text-xs"  onClick={resetSimulation}>
+        <Button
+          variant={"ghost"}
+          size={"sm"}
+          className="w-full text-xs"
+          onClick={resetSimulation}
+        >
           <RefreshCcw /> New Simulation
         </Button>
       </div>

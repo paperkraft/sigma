@@ -8,7 +8,7 @@ const geometry = (name: string, type: string) => {
     })(name);
 };
 
-// --- 1. PROJECTS (Keep mostly as is) ---
+// --- 1. PROJECTS ---
 export const projects = pgTable("projects", {
     id: uuid("id").defaultRandom().primaryKey(),
     title: text("title").notNull(),
@@ -74,20 +74,37 @@ export const links = pgTable("links", {
 }));
 
 // --- 4. SIMULATION RESULTS (New for Scale) ---
-// Don't store results in RAM for large networks. Save them here.
 export const simulationRuns = pgTable("simulation_runs", {
     id: uuid("id").defaultRandom().primaryKey(),
     projectId: uuid("project_id").references(() => projects.id, { onDelete: 'cascade' }).notNull(),
     status: text("status").notNull(), // 'completed', 'failed'
+    duration: integer("duration"), // Simulation duration in seconds
     executedAt: timestamp("executed_at").defaultNow(),
+
+    // The full EPANET output log
+    report: text("report"),
+    warnings: jsonb("warnings"),
 });
 
 export const simulationResults = pgTable("simulation_results", {
+    id: uuid("id").defaultRandom().primaryKey(),
     runId: uuid("run_id").references(() => simulationRuns.id, { onDelete: 'cascade' }).notNull(),
     featureId: text("feature_id").notNull(), // Join with nodes/links manually using projectId
 
-    // Store time-series data efficiently
-    // Structure: { "00:00": 50, "01:00": 45, ... }
-    // Or arrays: { "time": [0, 3600, 7200], "value": [50, 45, 60] }
+    // Summary Statistics (Fast Querying)
+    minVal: doublePrecision("min_val"), // Min Pressure (Node) or Min Flow (Link)
+    maxVal: doublePrecision("max_val"), // Max Pressure (Node) or Max Flow (Link)
+
+    // The "Lite" Time Series (Only Report Steps)
     timeSeries: jsonb("time_series"),
+});
+
+// --- 5. BOOKMARKS ---
+export const bookmarks = pgTable("bookmarks", {
+    id: uuid("id").defaultRandom().primaryKey(),
+    projectId: uuid("project_id").references(() => projects.id, { onDelete: "cascade" }).notNull(),
+    name: text("name").notNull(),
+    center: jsonb("center").$type<number[]>().notNull(),
+    zoom: doublePrecision("zoom").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
 });
